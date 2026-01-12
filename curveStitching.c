@@ -3,13 +3,13 @@
 
 #define WIDTH 400
 #define HEIGHT 400
-#define NUM_LINES 15
+#define NUM_LINES 15 // same as snap
 #define STEP 10
 
 static int frame = 0; // current frame, initial zero
 
 static gboolean draw_curve_stitching(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
-    // Fill background black
+    // fill background black
     cairo_set_source_rgb(cr, 0, 0, 0);
     cairo_paint(cr);
 
