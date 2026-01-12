@@ -4,63 +4,64 @@
 #define WIDTH 400
 #define HEIGHT 400
 #define NUM_LINES 15
-#define STEP 10  // distance between points
+#define STEP 10
 
-// Interpolate between two colors (r1,g1,b1) -> (r2,g2,b2) based on t (0.0-1.0)
-static void interpolate_color(double t, double r1, double g1, double b1,
-                              double r2, double g2, double b2,
-                              double *r, double *g, double *b) {
-    *r = r1 + t * (r2 - r1);
-    *g = g1 + t * (g2 - g1);
-    *b = b1 + t * (b2 - b1);
-}
+static int frame = 0; // current frame, initial zero
 
-// Draw the curve stitching with vertical purple→pink gradient
 static gboolean draw_curve_stitching(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
-    // Shift origin to center
+    // Fill background black
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_paint(cr);
+
+    // make the origin the center of the screen
     cairo_translate(cr, WIDTH / 2, HEIGHT / 2);
-    // Rotate 45 degrees
-    cairo_rotate(cr, M_PI / 4);
 
-    // Define top and bottom colors
-    double r_top = 0.5, g_top = 0.0, b_top = 0.5;      // Purple
-    double r_bottom = 0.8, g_bottom = 0.0, b_bottom = 0.5; // Dark pink
+    // main logic loop
+    for (int i = 0; i <= frame && i <= NUM_LINES; i++) {
+        double red = 1.0 - (double)i / NUM_LINES;
+        double green = (double)i / NUM_LINES;
+        double blue = 0.0; //no blue
 
-    for (int i = 0; i <= NUM_LINES; i++) {
-        double ratio = (double)i / NUM_LINES;  // 0 = top, 1 = bottom
-        double r, g, b;
-        interpolate_color(ratio, r_top, g_top, b_top, r_bottom, g_bottom, b_bottom, &r, &g, &b);
-        cairo_set_source_rgb(cr, r, g, b);
+        cairo_set_source_rgb(cr, red, green, blue);
 
-        // Q1
+        // q1
         cairo_move_to(cr, 0, STEP * NUM_LINES - STEP * i);
         cairo_line_to(cr, STEP * i, 0);
-        cairo_stroke(cr);
 
-        // Q2
+        // q2
         cairo_move_to(cr, 0, STEP * NUM_LINES - STEP * i);
         cairo_line_to(cr, -STEP * i, 0);
-        cairo_stroke(cr);
 
-        // Q3
+        // q3
         cairo_move_to(cr, 0, -STEP * NUM_LINES + STEP * i);
         cairo_line_to(cr, -STEP * i, 0);
-        cairo_stroke(cr);
 
-        // Q4
+        // q4
         cairo_move_to(cr, 0, -STEP * NUM_LINES + STEP * i);
         cairo_line_to(cr, STEP * i, 0);
+
         cairo_stroke(cr);
     }
 
     return FALSE;
 }
 
+
+gboolean update_frame(gpointer data) {
+    GtkWidget *drawing_area = GTK_WIDGET(data);
+
+    frame++;
+    if (frame > NUM_LINES) frame = 0; // loop animation
+
+    gtk_widget_queue_draw(drawing_area); // redraw
+    return TRUE; // keep timer running
+}
+
 int main(int argc, char *argv[]) {
     gtk_init(&argc, &argv);
 
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(window), "Curve Stitching Purple→Pink");
+    gtk_window_set_title(GTK_WINDOW(window), "Curve Stitching");
     gtk_window_set_default_size(GTK_WINDOW(window), WIDTH, HEIGHT);
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
@@ -69,6 +70,10 @@ int main(int argc, char *argv[]) {
     g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(draw_curve_stitching), NULL);
 
     gtk_widget_show_all(window);
+
+    // Animate every 200 miliseconds
+    g_timeout_add(200, update_frame, drawing_area);
+
     gtk_main();
     return 0;
 }
